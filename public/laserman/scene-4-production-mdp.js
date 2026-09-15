@@ -1,6 +1,7 @@
 (() => {
   const $ = (selector) => document.querySelector(selector);
   const world = $("#world");
+  const content = $("#content");
   const stage = $("#stage");
   const svg = $("#canvas");
   const shell = $("#shell");
@@ -14,7 +15,7 @@
   const el = (tag, attributes = {}, text = "") => { const node = document.createElementNS("http://www.w3.org/2000/svg", tag); Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value))); if (text) node.textContent = text; return node; };
   const addText = (group, x, y, text, className, anchor = "start") => { const node = el("text", { x, y, class: className, "text-anchor": anchor }, text); group.append(node); return node; };
   const addRect = (group, x, y, width, height, className, radius = 9) => { const node = el("rect", { x, y, width, height, rx: radius, class: className }); group.append(node); return node; };
-  const addPath = (x1, y1, x2, y2, className = "edge") => { const path = el("path", { d: `M${x1} ${y1} C${x1 + (x2 - x1) * 0.4} ${y1} ${x1 + (x2 - x1) * 0.6} ${y2} ${x2} ${y2}`, class: className }); world.append(path); return path; };
+  const addPath = (x1, y1, x2, y2, className = "edge") => { const path = el("path", { d: `M${x1} ${y1} C${x1 + (x2 - x1) * 0.4} ${y1} ${x1 + (x2 - x1) * 0.6} ${y2} ${x2} ${y2}`, class: className }); content.append(path); return path; };
 
   function applyTransform() { world.setAttribute("transform", `translate(${state.x} ${state.y}) scale(${state.scale})`); }
   function fit() { const width = stage.clientWidth; const height = stage.clientHeight; state.scale = Math.min((width - 34) / state.graphWidth, (height - 34) / state.graphHeight); state.x = (width - state.graphWidth * state.scale) / 2; state.y = (height - state.graphHeight * state.scale) / 2; applyTransform(); }
@@ -41,11 +42,11 @@
   }
 
   function selectNode(node, selection) {
-    world.querySelectorAll(".canvas-node").forEach((item) => item.classList.remove("selected"));
+    content.querySelectorAll(".canvas-node").forEach((item) => item.classList.remove("selected"));
     node?.classList.add("selected");
     state.selected = selection;
   }
-  function makeNode(group, selection, handler) { group.classList.add("canvas-node"); group.dataset.selection = selection; group.addEventListener("click", (event) => { event.stopPropagation(); selectNode(group, selection); handler(); }); world.append(group); }
+  function makeNode(group, selection, handler) { group.classList.add("canvas-node"); group.dataset.selection = selection; group.addEventListener("click", (event) => { event.stopPropagation(); selectNode(group, selection); handler(); }); content.append(group); }
 
   function drawOverview() {
     state.mode = "overview";
@@ -53,7 +54,7 @@
     state.selected = null;
     $("#overview").classList.add("active"); $("#generations").classList.remove("active");
     $("#status-text").textContent = "Keyframe map: select a family to open all recorded actions and candidates. Violet paths identify generated references reused in a later action.";
-    world.replaceChildren();
+    content.replaceChildren();
     state.graphWidth = 2560; state.graphHeight = 1750;
     const positions = new Map();
     const keyframes = state.data.keyframes;
@@ -79,7 +80,7 @@
     state.mode = "generations"; state.currentKF = String(keyframeId); state.selected = null;
     $("#overview").classList.remove("active"); $("#generations").classList.add("active");
     $("#status-text").textContent = `KF ${keyframe.keyframe_id}: every recorded candidate is shown. Select an action or image for prompt, references, heuristic reward heads and evidence status.`;
-    world.replaceChildren();
+    content.replaceChildren();
     const actions = actionsFor(keyframeId); const maxCandidates = Math.max(1, ...actions.map((action) => candidatesForAction(action.action_id).length));
     state.graphWidth = Math.max(1540, 210 + actions.length * 550 + 390); state.graphHeight = Math.max(1260, 520 + Math.ceil(maxCandidates / 3) * 154 + 130);
     const actionPositions = new Map(); const candidatePositions = new Map();
@@ -99,7 +100,7 @@
     const approvedX = 170 + actions.length * 550; const approved = el("g"); addRect(approved, approvedX, 265, 320, 250, "approved-card"); approved.append(el("image", { x: approvedX + 10, y: 275, width: 300, height: 158, href: keyframe.image, preserveAspectRatio: "xMidYMid slice" })); addText(approved, approvedX + 14, 460, "Approved keyframe asset", "label"); addText(approved, approvedX + 14, 484, "Candidate source unlinked", "small"); addText(approved, approvedX + 14, 506, "No candidate receives human reward 1", "small"); makeNode(approved, `approved:${keyframe.keyframe_id}`, () => showKeyframe(keyframe));
     for (const action of actions) for (const ref of action.refs || []) if (ref.internal) { const from = candidatePositions.get(ref.id); const to = actionPositions.get(action.action_id); if (from && to) addPath(from.x, from.y, to.x, to.y, "lineage-edge"); }
     renderNavigator(); fit();
-    if (focus?.startsWith("candidate:")) { const candidate = state.data.candidates.find((item) => `candidate:${item.id}` === focus); const point = candidatePositions.get(candidate?.id); if (candidate && point) { center(point.x, point.y, 1.7); const node = world.querySelector(`[data-selection="${focus}"]`); selectNode(node, focus); showCandidate(candidate); } } else showKeyframe(keyframe);
+    if (focus?.startsWith("candidate:")) { const candidate = state.data.candidates.find((item) => `candidate:${item.id}` === focus); const point = candidatePositions.get(candidate?.id); if (candidate && point) { center(point.x, point.y, 1.7); const node = content.querySelector(`[data-selection="${focus}"]`); selectNode(node, focus); showCandidate(candidate); } } else showKeyframe(keyframe);
   }
 
   function showOverview() { inspector.innerHTML = `<h2>Scene 4 production map</h2><p class="sub">Act 5 · LM Tries to Fight Sandman, Bubble and Freezer</p><div class="notice"><strong>Archive evidence.</strong><br>${state.data.meta.keyframe_count} approved keyframe assets; ${state.data.meta.action_count} actions; ${state.data.meta.candidate_count.toLocaleString()} generated candidates.</div><h3>Map semantics</h3><dl class="metrics"><dt>Keyframe family</dt><dd>Approved asset associated with an action/candidate family.</dd><dt>Lineage</dt><dd>Violet edge: a generated candidate was reused as a reference by a later action.</dd><dt>Locks</dt><dd>${state.data.meta.human_lock_count} authoritative candidate locks are linked in this workbook.</dd></dl><h3>Evidence boundary</h3><p class="sub">Candidate exposure and explicit rejection reasons remain unknown. Counterfactual ranks are computed heuristic audits, not filmmaker preference labels.</p>`; }
@@ -109,9 +110,19 @@
   function showCandidate(candidate) { const action = state.data.actions.find((item) => item.action_id === candidate.actionId); const rewards = Object.entries(candidate.reward).map(([key, value]) => `<div class="headbar"><span>${escapeHTML(key.replaceAll("_", " "))}</span><div class="bar"><i style="width:${Math.round(value * 100)}%"></i></div><strong>${value.toFixed(2)}</strong></div>`).join(""); inspector.innerHTML = `<img class="hero-image" src="${escapeHTML(candidate.image)}" alt="Generated candidate ${escapeHTML(candidate.id)}"><h2>${escapeHTML(short(candidate.id, 30))}</h2><p class="sub">KF ${candidate.keyframeId} · ${escapeHTML(candidate.actionId)} · score ${candidate.score.toFixed(4)}</p><div class="warning"><strong>${candidate.keyframeRank === 1 ? "Counterfactual best." : "Candidate audit."}</strong><br>${escapeHTML(candidate.reason)}</div><dl class="metrics"><dt>Keyframe rank</dt><dd>#${candidate.keyframeRank}</dd><dt>Action rank</dt><dd>#${candidate.actionRank}</dd><dt>Human lock</dt><dd>${candidate.humanLock}</dd><dt>Exposure</dt><dd>${escapeHTML(candidate.exposure)}</dd><dt>Failure hypothesis</dt><dd>${escapeHTML(candidate.failure.replaceAll("_", " "))} · ${escapeHTML(candidate.basis)}</dd></dl><h3>Heuristic reward vector</h3>${rewards}<h3>Generation prompt</h3><p class="prompt">${escapeHTML(action?.prompt || "Not recorded")}</p>`; }
 
   function focusKeyframe(id, openRoute) { const keyframe = keyframeById(id); if (!keyframe) return; if (openRoute) drawRoute(id); else showKeyframe(keyframe); }
-  function search() { const value = $("#query").value.trim().toLowerCase(); if (!value) return; const candidate = state.data.candidates.find((item) => item.id.toLowerCase().includes(value) || item.failure.toLowerCase().includes(value)); if (candidate) { drawRoute(candidate.keyframeId, `candidate:${candidate.id}`); return; } const action = state.data.actions.find((item) => item.action_id.toLowerCase() === value || item.prompt.toLowerCase().includes(value)); if (action) { drawRoute(action.keyframe_id); const node = world.querySelector(`[data-selection="action:${action.action_id}"]`); selectNode(node, `action:${action.action_id}`); showAction(action); return; } const keyframe = state.data.keyframes.find((item) => String(item.keyframe_id) === value.replace(/^kf\s*/, "") || item.keyframe.toLowerCase().includes(value)); if (keyframe) { drawRoute(keyframe.keyframe_id); return; } $("#status-text").textContent = `No image, action or keyframe matched “${value}”.`; }
+  function search() { const value = $("#query").value.trim().toLowerCase(); if (!value) return; const candidate = state.data.candidates.find((item) => item.id.toLowerCase().includes(value) || item.failure.toLowerCase().includes(value)); if (candidate) { drawRoute(candidate.keyframeId, `candidate:${candidate.id}`); return; } const action = state.data.actions.find((item) => item.action_id.toLowerCase() === value || item.prompt.toLowerCase().includes(value)); if (action) { drawRoute(action.keyframe_id); const node = content.querySelector(`[data-selection="action:${action.action_id}"]`); selectNode(node, `action:${action.action_id}`); showAction(action); return; } const keyframe = state.data.keyframes.find((item) => String(item.keyframe_id) === value.replace(/^kf\s*/, "") || item.keyframe.toLowerCase().includes(value)); if (keyframe) { drawRoute(keyframe.keyframe_id); return; } $("#status-text").textContent = `No image, action or keyframe matched “${value}”.`; }
   function wire() {
     $("#overview").onclick = drawOverview; $("#generations").onclick = () => drawRoute(state.currentKF || state.data.keyframes[0].keyframe_id); $("#plus").onclick = () => zoom(1.2); $("#minus").onclick = () => zoom(.82); $("#fit").onclick = fit; $("#query").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); }); $("#query").addEventListener("change", search); $("#nav-search").addEventListener("input", renderNavigator); $("#nav-all").onclick = () => { state.nav = "all"; $("#nav-all").classList.add("active"); $("#nav-linked").classList.remove("active"); renderNavigator(); }; $("#nav-linked").onclick = () => { state.nav = "linked"; $("#nav-linked").classList.add("active"); $("#nav-all").classList.remove("active"); renderNavigator(); }; $("#filter").onchange = () => { state.nav = $("#filter").value; $("#nav-all").classList.toggle("active", state.nav === "all"); $("#nav-linked").classList.toggle("active", state.nav === "linked"); renderNavigator(); }; $("#hide-left").onclick = () => shell.classList.add("left-hidden"); $("#hide-right").onclick = () => shell.classList.add("right-hidden"); $("#show-left").onclick = () => { shell.classList.remove("left-hidden"); shell.classList.toggle("mobile-left-open", innerWidth <= 760); }; $("#show-right").onclick = () => { shell.classList.remove("right-hidden"); shell.classList.toggle("mobile-right-open", innerWidth <= 760); }; $("#status-toggle").onclick = () => { const open = $("#status").classList.toggle("expanded"); $("#status-toggle").setAttribute("aria-expanded", String(open)); }; stage.addEventListener("pointerdown", (event) => { if (event.target.closest(".canvas-node")) return; drag = { x: event.clientX, y: event.clientY }; stage.classList.add("drag"); stage.setPointerCapture(event.pointerId); }); stage.addEventListener("pointermove", (event) => { if (!drag) return; state.x += event.clientX - drag.x; state.y += event.clientY - drag.y; drag = { x: event.clientX, y: event.clientY }; applyTransform(); }); stage.addEventListener("pointerup", (event) => { drag = null; stage.classList.remove("drag"); if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId); }); stage.addEventListener("wheel", (event) => { event.preventDefault(); const rect = stage.getBoundingClientRect(); zoom(event.deltaY < 0 ? 1.12 : .88, event.clientX - rect.left, event.clientY - rect.top); }, { passive: false }); new ResizeObserver(() => fit()).observe(stage); }
+  stage.addEventListener("pointerdown", (event) => {
+    if (event.target.closest(".floating")) {
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (!event.target.closest(".canvas-node")) event.preventDefault();
+  }, true);
+  stage.addEventListener("pointercancel", () => { drag = null; stage.classList.remove("drag"); });
+  stage.addEventListener("lostpointercapture", () => { drag = null; stage.classList.remove("drag"); });
+
   async function load() { try { const raw = await fetch("/laserman/scene-4-keyframe-canvas.html").then((response) => response.text()); const start = raw.indexOf("const DATA=") + "const DATA=".length; const end = raw.indexOf("}]};\n(()=>{", start); if (start < "const DATA=".length || end < 0) throw new Error("Could not locate the source archive."); state.data = JSON.parse(raw.slice(start, end + 3)); $("#summary").textContent = `${state.data.meta.keyframe_count} keyframe families · ${state.data.meta.action_count} actions · ${state.data.meta.candidate_count.toLocaleString()} generated states · heuristic audit`; wire(); drawOverview(); } catch (error) { $("#summary").textContent = "Archive load failed"; inspector.innerHTML = `<div class="empty">${escapeHTML(error.message)}</div>`; } }
   load();
 })();
