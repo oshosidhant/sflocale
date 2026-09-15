@@ -6,7 +6,7 @@ export default function About() {
           Built by people who care about craft and conversion, equally.
         </h2>
         <p className="mt-6 max-w-2xl text-muted">
-          SFlocale is a small studio for tech and SaaS companies who want
+          SF Locale is a small studio for tech and SaaS companies who want
           their story told well — not just polished, but useful. We plan
           every film around a business outcome first, then spend the craft
           making sure it doesn&apos;t feel like an ad.

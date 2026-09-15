@@ -1,13 +1,16 @@
+import Image from "next/image";
+
 export default function Home() {
   return (
     <>
-      <header><div className="column header-inner"><a className="wordmark" href="#top">Bombay Locale</a></div></header>
-      <div className="hero" id="top"><div className="column"><h1>Filmmaking is a sequence of judgments.</h1><p className="summary">Bombay Locale studies how human decisions can guide video systems across shots, scenes and complete films.</p></div></div>
+      <header><div className="column header-inner"><a className="wordmark" href="#top">SF Locale</a></div></header>
+      <div className="hero" id="top"><div className="column"><h1>Filmmaking is a sequence of judgments.</h1><p className="summary">SF Locale studies how human decisions can guide video systems across shots, scenes and complete films.</p><a className="trajectory-button" href="/trajectory">Trajectory <span aria-hidden="true">→</span></a></div></div>
       <main className="column">
         <p className="lead">The production process creates a dataset of intent, alternatives, choices, revisions and consequences.</p>
+        <figure className="walkthrough-figure"><Image className="evidence-image" src="/research/trajectory-walkthrough.gif" alt="Scene 4 production map transitions to a complete keyframe trajectory and then to a candidate reward and prompt inspector." width={900} height={548} sizes="(max-width: 756px) calc(100vw - 56px), 700px" unoptimized /><figcaption><span className="caption-label">Trajectory walkthrough.</span> A scene map opens into a single keyframe route, then reveals the prompt and multi-head audit for one candidate.</figcaption></figure>
         <section id="production-data">
           <p className="section-label">Production archive</p><h2>The research begins inside production.</h2>
-          <p>Bombay Locale began using generative models in January 2026. The studio has completed five feature-length films since then.</p>
+          <p>SF Locale began using generative models in January 2026. The studio has completed five feature-length films since then.</p>
           <div className="data-list" aria-label="Production archive summary">
             <div className="data-line"><strong>5</strong><span>feature-length films have been completed.</span></div>
             <div className="data-line"><strong>1M+</strong><span>image and video generations have been recorded.</span></div>
@@ -16,6 +19,7 @@ export default function Home() {
             <div className="data-line"><strong>100K</strong><span>shots are represented in the archive.</span></div>
           </div>
           <p>Each record can connect a shot&apos;s intent, prompt, references, candidate family, director choice, revision reason and final position in sequence.</p>
+          <figure className="evidence-figure"><Image className="evidence-image" src="/research/trajectory-scene-map.png" alt="Scene 4 production map with 35 keyframes, candidate counts and generated-reference lineage." width={1500} height={913} sizes="(max-width: 756px) calc(100vw - 56px), 700px" /><figcaption><span className="caption-label">Production map.</span> The Scene 4 archive exposes 35 keyframe families, their candidate counts and cross-keyframe reference reuse.</figcaption></figure>
         </section>
         <section id="trajectory">
           <p className="section-label">Research object</p><h2>The trajectory is the learning object.</h2>
@@ -29,6 +33,7 @@ export default function Home() {
             <div className="process-step"><strong>Next state</strong><div className="process-copy">The decision updates the branch, canon and context available to later shots.</div></div>
           </div><figcaption id="trajectory-caption"><span className="caption-label">Figure 1.</span> The graph is event-sourced. New decisions extend the record without erasing earlier states.</figcaption></figure>
           <figure className="formula-figure" aria-labelledby="trajectory-formula-caption"><pre className="formula"><code>τₜ = (Xₜ, Aₜ, Oₜ, Hₜ, Fₜ, Xₜ₊₁, Gₜ, Cₜ, Yₜ)</code></pre><figcaption id="trajectory-formula-caption"><span className="caption-label">Trajectory record.</span> X is the production state, A the generation action, O the candidate family, H the human decision, F the feedback, G the lineage, C the active canon and Y the later outcome.</figcaption></figure>
+          <figure className="evidence-figure"><Image className="evidence-image" src="/research/trajectory-keyframe-route.png" alt="A complete keyframe trajectory with three action families and fifteen candidate images." width={1500} height={913} sizes="(max-width: 756px) calc(100vw - 56px), 700px" /><figcaption><span className="caption-label">One route in full.</span> Each action preserves its references, candidate family and the decision state it left unresolved.</figcaption></figure>
         </section>
         <section id="representation">
           <p className="section-label">State representation</p><h2>The model needs the state of the film.</h2>
@@ -55,6 +60,7 @@ export default function Home() {
           <p className="section-label">Reward model</p><h2>Human judgment has several dimensions.</h2>
           <p>A lock means that a candidate was selected for a specific role in a specific production state. It does not mean that the candidate is universally good. An unselected candidate may become useful later, and an unseen candidate provides no preference evidence.</p><p>A critic can keep separate estimates for intent, reference fidelity, canon consistency, performance, cinematography, technical quality, narrative function and production utility. The weight of each estimate can change with the production state.</p>
           <figure className="formula-figure" aria-labelledby="value-formula-caption"><pre className="formula"><code>Q(Sₜ, s) = immediate fit + future utility − expected repair cost</code></pre><figcaption id="value-formula-caption"><span className="caption-label">Value hypothesis.</span> The value of a candidate depends on its immediate role, its later usefulness and the repairs it may create.</figcaption></figure><p className="footnote"><strong>Research note.</strong> The archive does not yet establish a calibrated value function or a causal measure of future repair cost.</p>
+          <figure className="evidence-figure"><Image className="evidence-image" src="/research/trajectory-reward-inspector.png" alt="A selected counterfactual candidate alongside its reward vector, prompt and action references." width={1500} height={913} sizes="(max-width: 756px) calc(100vw - 56px), 700px" /><figcaption><span className="caption-label">Candidate audit.</span> The inspector makes the current heuristic transparent: its prompt, references, individual reward heads and evidence limitations remain visible.</figcaption></figure>
         </section>
         <section id="research-targets">
           <p className="section-label">Learning problems</p><h2>The archive supports several learning problems.</h2>
@@ -74,9 +80,9 @@ export default function Home() {
           </div>
           <p className="footnote"><strong>Current status.</strong> The archive and system definitions exist. Model training and validation remain open research work. The page makes no claim that a production reward model, orchestration policy or debt model has been trained.</p>
         </section>
-        <section id="studio"><p className="section-label">Research practice</p><h2>The studio funds research through film production.</h2><p>Bombay Locale is a studio of filmmakers and engineers from IIT Bombay and IIT BHU. The studio makes films for clients and for its own projects. Production funds the research and continues to grow the trajectory archive.</p></section>
+        <section id="studio"><p className="section-label">Research practice</p><h2>The studio funds research through film production.</h2><p>SF Locale is a studio of filmmakers and engineers from IIT Bombay and IIT BHU. The studio makes films for clients and for its own projects. Production funds the research and continues to grow the trajectory archive.</p></section>
       </main>
-      <footer className="site-footer" id="contact"><div className="column"><p className="footer-label">Collaboration</p><h2>We want researchers who can make these questions measurable.</h2><p>We are interested in collaborations in video generation, preference learning, computational cinematography, multimodal evaluation and long-form consistency.</p><p>Useful work includes building leakage-resistant benchmarks, learning from partial preferences, representing active canon, modeling delayed repair and evaluating human decision support in production.</p><p>Tell us which question you would test and what evidence you would need from the archive.</p><a className="contact-link" href="mailto:research@bombaylocale.com">research@bombaylocale.com</a></div></footer>
+      <footer className="site-footer" id="contact"><div className="column"><p className="footer-label">Collaboration</p><h2>We want researchers who can make these questions measurable.</h2><p>We are interested in collaborations in video generation, preference learning, computational cinematography, multimodal evaluation and long-form consistency.</p><p>Useful work includes building leakage-resistant benchmarks, learning from partial preferences, representing active canon, modeling delayed repair and evaluating human decision support in production.</p><p>Tell us which question you would test and what evidence you would need from the archive.</p><a className="contact-link" href="mailto:research@sflocale.com">research@sflocale.com</a></div></footer>
     </>
   );
 }

@@ -23,7 +23,7 @@ export default function Footer() {
           ))}
         </ul>
 
-        <p>San Francisco, CA · © {new Date().getFullYear()} SFlocale</p>
+        <p>San Francisco, CA · © {new Date().getFullYear()} SF Locale</p>
       </div>
     </footer>
   );

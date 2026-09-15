@@ -12,7 +12,7 @@ export default function Hero() {
       </h1>
 
       <p className="mt-6 max-w-xl text-lg text-muted">
-        SFlocale makes brand films, launch campaigns, and product videos for
+        SF Locale makes brand films, launch campaigns, and product videos for
         tech and SaaS companies building out of the Bay Area — and shipping
         to the world.
       </p>
