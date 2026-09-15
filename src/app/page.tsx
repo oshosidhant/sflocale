@@ -1,8 +1,10 @@
 import Image from "next/image";
+import ScrollProgress from "@/components/ScrollProgress";
 
 export default function Home() {
   return (
     <>
+      <ScrollProgress />
       <header><div className="column header-inner"><a className="wordmark" href="#top">SF Locale</a></div></header>
       <div className="hero" id="top"><div className="column hero-grid"><div><h1>Filmmaking is a sequence of judgments.</h1><p className="summary">SF Locale studies how human decisions can guide video systems across shots, scenes and complete films.</p><a className="trajectory-button" href="/trajectory">Trajectory <span aria-hidden="true">→</span></a></div><dl className="hero-stats" aria-label="SF Locale production archive"><div><dt>5</dt><dd>feature (70+ min) films completed</dd></div><div><dt>1M+</dt><dd>generations recorded</dd></div><div><dt>4K</dt><dd>director annotation hours</dd></div></dl></div></div>
       <main className="column">
