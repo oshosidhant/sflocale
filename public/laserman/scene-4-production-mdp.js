@@ -7,8 +7,9 @@
   const shell = $("#shell");
   const inspector = $("#inspector");
   const list = $("#keyframe-list");
-  const state = { data: null, mode: "overview", currentKF: null, selected: null, x: 0, y: 0, scale: 1, graphWidth: 1, graphHeight: 1, nav: "all" };
+  const state = { data: null, mode: "overview", currentKF: null, selected: null, x: 0, y: 0, scale: 1, graphWidth: 1, graphHeight: 1, nav: "all", preserveViewport: false, lockViewport: true };
   let drag = null;
+  let panelsWired = false;
 
   const escapeHTML = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#039;", '"': "&quot;" }[char]));
   const short = (value, length = 25) => String(value ?? "").length > length ? `${String(value).slice(0, 11)}…${String(value).slice(-7)}` : String(value ?? "");
@@ -18,7 +19,7 @@
   const addPath = (x1, y1, x2, y2, className = "edge") => { const path = el("path", { d: `M${x1} ${y1} C${x1 + (x2 - x1) * 0.4} ${y1} ${x1 + (x2 - x1) * 0.6} ${y2} ${x2} ${y2}`, class: className }); content.append(path); return path; };
 
   function applyTransform() { world.setAttribute("transform", `translate(${state.x} ${state.y}) scale(${state.scale})`); }
-  function fit() { const width = stage.clientWidth; const height = stage.clientHeight; state.scale = Math.min((width - 34) / state.graphWidth, (height - 34) / state.graphHeight); state.x = (width - state.graphWidth * state.scale) / 2; state.y = (height - state.graphHeight * state.scale) / 2; applyTransform(); }
+  function fit(force = false) { if (state.preserveViewport || (state.lockViewport && !force)) return; const width = stage.clientWidth; const height = stage.clientHeight; state.scale = Math.min((width - 34) / state.graphWidth, (height - 34) / state.graphHeight); state.x = (width - state.graphWidth * state.scale) / 2; state.y = (height - state.graphHeight * state.scale) / 2; applyTransform(); }
   function zoom(multiplier, clientX = stage.clientWidth / 2, clientY = stage.clientHeight / 2) { const scale = Math.max(0.06, Math.min(3, state.scale * multiplier)); const wx = (clientX - state.x) / state.scale; const wy = (clientY - state.y) / state.scale; state.x = clientX - wx * scale; state.y = clientY - wy * scale; state.scale = scale; applyTransform(); }
   function center(x, y, multiplier = 1) { if (multiplier !== 1) zoom(multiplier); state.x = stage.clientWidth / 2 - x * state.scale; state.y = stage.clientHeight / 2 - y * state.scale; applyTransform(); }
   function keyframeById(id) { return state.data.keyframes.find((keyframe) => String(keyframe.keyframe_id) === String(id)); }
@@ -49,6 +50,7 @@
   function makeNode(group, selection, handler) { group.classList.add("canvas-node"); group.dataset.selection = selection; group.addEventListener("click", (event) => { event.stopPropagation(); selectNode(group, selection); handler(); }); content.append(group); }
 
   function drawOverview() {
+    if (!panelsWired) { wirePanels(); panelsWired = true; }
     state.mode = "overview";
     state.currentKF = null;
     state.selected = null;
@@ -72,7 +74,7 @@
       addText(group, point.x + 12, point.y + 176, `${keyframe.action_count} actions · approved asset`, "small");
       makeNode(group, `keyframe:${keyframe.keyframe_id}`, () => focusKeyframe(keyframe.keyframe_id, true));
     }
-    showOverview(); renderNavigator(); fit();
+    showOverview(); renderNavigator(); fit(true);
   }
 
   function drawRoute(keyframeId, focus = null) {
@@ -99,7 +101,7 @@
     });
     const approvedX = 170 + actions.length * 550; const approved = el("g"); addRect(approved, approvedX, 265, 320, 250, "approved-card"); approved.append(el("image", { x: approvedX + 10, y: 275, width: 300, height: 158, href: keyframe.image, preserveAspectRatio: "xMidYMid slice" })); addText(approved, approvedX + 14, 460, "Approved keyframe asset", "label"); addText(approved, approvedX + 14, 484, "Candidate source unlinked", "small"); addText(approved, approvedX + 14, 506, "No candidate receives human reward 1", "small"); makeNode(approved, `approved:${keyframe.keyframe_id}`, () => showKeyframe(keyframe));
     for (const action of actions) for (const ref of action.refs || []) if (ref.internal) { const from = candidatePositions.get(ref.id); const to = actionPositions.get(action.action_id); if (from && to) addPath(from.x, from.y, to.x, to.y, "lineage-edge"); }
-    renderNavigator(); fit();
+    renderNavigator(); fit(true);
     if (focus?.startsWith("candidate:")) { const candidate = state.data.candidates.find((item) => `candidate:${item.id}` === focus); const point = candidatePositions.get(candidate?.id); if (candidate && point) { center(point.x, point.y, 1.7); const node = content.querySelector(`[data-selection="${focus}"]`); selectNode(node, focus); showCandidate(candidate); } } else showKeyframe(keyframe);
   }
 
@@ -113,6 +115,61 @@
   function search() { const value = $("#query").value.trim().toLowerCase(); if (!value) return; const candidate = state.data.candidates.find((item) => item.id.toLowerCase().includes(value) || item.failure.toLowerCase().includes(value)); if (candidate) { drawRoute(candidate.keyframeId, `candidate:${candidate.id}`); return; } const action = state.data.actions.find((item) => item.action_id.toLowerCase() === value || item.prompt.toLowerCase().includes(value)); if (action) { drawRoute(action.keyframe_id); const node = content.querySelector(`[data-selection="action:${action.action_id}"]`); selectNode(node, `action:${action.action_id}`); showAction(action); return; } const keyframe = state.data.keyframes.find((item) => String(item.keyframe_id) === value.replace(/^kf\s*/, "") || item.keyframe.toLowerCase().includes(value)); if (keyframe) { drawRoute(keyframe.keyframe_id); return; } $("#status-text").textContent = `No image, action or keyframe matched “${value}”.`; }
   function wire() {
     $("#overview").onclick = drawOverview; $("#generations").onclick = () => drawRoute(state.currentKF || state.data.keyframes[0].keyframe_id); $("#plus").onclick = () => zoom(1.2); $("#minus").onclick = () => zoom(.82); $("#fit").onclick = fit; $("#query").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); }); $("#query").addEventListener("change", search); $("#nav-search").addEventListener("input", renderNavigator); $("#nav-all").onclick = () => { state.nav = "all"; $("#nav-all").classList.add("active"); $("#nav-linked").classList.remove("active"); renderNavigator(); }; $("#nav-linked").onclick = () => { state.nav = "linked"; $("#nav-linked").classList.add("active"); $("#nav-all").classList.remove("active"); renderNavigator(); }; $("#filter").onchange = () => { state.nav = $("#filter").value; $("#nav-all").classList.toggle("active", state.nav === "all"); $("#nav-linked").classList.toggle("active", state.nav === "linked"); renderNavigator(); }; $("#hide-left").onclick = () => shell.classList.add("left-hidden"); $("#hide-right").onclick = () => shell.classList.add("right-hidden"); $("#show-left").onclick = () => { shell.classList.remove("left-hidden"); shell.classList.toggle("mobile-left-open", innerWidth <= 760); }; $("#show-right").onclick = () => { shell.classList.remove("right-hidden"); shell.classList.toggle("mobile-right-open", innerWidth <= 760); }; $("#status-toggle").onclick = () => { const open = $("#status").classList.toggle("expanded"); $("#status-toggle").setAttribute("aria-expanded", String(open)); }; stage.addEventListener("pointerdown", (event) => { if (event.target.closest(".canvas-node")) return; drag = { x: event.clientX, y: event.clientY }; stage.classList.add("drag"); stage.setPointerCapture(event.pointerId); }); stage.addEventListener("pointermove", (event) => { if (!drag) return; state.x += event.clientX - drag.x; state.y += event.clientY - drag.y; drag = { x: event.clientX, y: event.clientY }; applyTransform(); }); stage.addEventListener("pointerup", (event) => { drag = null; stage.classList.remove("drag"); if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId); }); stage.addEventListener("wheel", (event) => { event.preventDefault(); const rect = stage.getBoundingClientRect(); zoom(event.deltaY < 0 ? 1.12 : .88, event.clientX - rect.left, event.clientY - rect.top); }, { passive: false }); new ResizeObserver(() => fit()).observe(stage); }
+  function wirePanels() {
+    let epoch = 0;
+    const isMobile = () => innerWidth <= 760;
+    const isOpen = (panel) => !shell.classList.contains(`${panel}-hidden`);
+    const updateControls = () => {
+      $("#show-left").setAttribute("aria-expanded", String(isOpen("left")));
+      $("#show-right").setAttribute("aria-expanded", String(isOpen("right")));
+    };
+    const setPanels = (leftOpen, rightOpen) => {
+      const mobile = isMobile();
+      const token = ++epoch;
+      const centerX = (stage.clientWidth / 2 - state.x) / state.scale;
+      const centerY = (stage.clientHeight / 2 - state.y) / state.scale;
+      const preserve = !mobile;
+      state.preserveViewport = preserve;
+      shell.classList.toggle("left-hidden", !leftOpen);
+      shell.classList.toggle("right-hidden", !rightOpen);
+      shell.classList.toggle("mobile-left-open", mobile && leftOpen);
+      shell.classList.toggle("mobile-right-open", mobile && rightOpen);
+      updateControls();
+      const restore = () => {
+        if (token !== epoch) return;
+        if (preserve) {
+          state.x = stage.clientWidth / 2 - centerX * state.scale;
+          state.y = stage.clientHeight / 2 - centerY * state.scale;
+          applyTransform();
+        }
+        state.preserveViewport = false;
+      };
+      if (!preserve) { restore(); return; }
+      shell.addEventListener("transitionend", (event) => { if (event.target === shell) restore(); }, { once: true });
+      window.setTimeout(restore, 220);
+    };
+    const openPanel = (panel) => {
+      const mobile = isMobile();
+      if (mobile) setPanels(panel === "left", panel === "right");
+      else setPanels(panel === "left" ? true : isOpen("left"), panel === "right" ? true : isOpen("right"));
+    };
+    const closePanel = (panel) => setPanels(panel === "left" ? false : isOpen("left"), panel === "right" ? false : isOpen("right"));
+    $("#hide-left").onclick = () => closePanel("left");
+    $("#hide-right").onclick = () => closePanel("right");
+    $("#show-left").onclick = () => openPanel("left");
+    $("#show-right").onclick = () => openPanel("right");
+    $("#fit").onclick = () => fit(true);
+    $("#drawer-scrim").onclick = () => setPanels(false, false);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape" && isMobile()) setPanels(false, false); });
+    addEventListener("resize", () => {
+      if (!isMobile()) {
+        shell.classList.remove("mobile-left-open", "mobile-right-open");
+        updateControls();
+      }
+    });
+    updateControls();
+  }
+
   stage.addEventListener("pointerdown", (event) => {
     if (event.target.closest(".floating")) {
       event.stopImmediatePropagation();
