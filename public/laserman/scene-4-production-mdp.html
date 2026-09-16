@@ -11,13 +11,14 @@
   <style>
     /* The canvas stays in the centre track even when either adjacent panel is absent. */
     .stage{grid-column:2}
-    .panel-openers{display:none}
-    .shell.left-hidden .panel-openers,.shell.right-hidden .panel-openers{display:flex}
-    .panel-openers button{display:none}
+    /* These are recovery controls, not a second set of navigation tabs. */
+    .panel-openers{display:none!important;pointer-events:none}
+    .shell.left-hidden .panel-openers,.shell.right-hidden .panel-openers{display:flex!important;pointer-events:auto}
+    .panel-openers button{display:none;border:1px solid var(--line);background:var(--paper);border-radius:7px;padding:7px 10px;color:var(--ink);font-weight:650;cursor:pointer}
     .shell.left-hidden #show-left,.shell.right-hidden #show-right{display:block}
     .drawer-scrim{display:none}
     @media(max-width:760px){
-      .panel-openers{display:flex}
+      .panel-openers{display:flex!important;pointer-events:auto}
       .panel-openers button{display:block}
       .shell.mobile-left-open #show-left,.shell.mobile-right-open #show-right{display:none}
       .shell.mobile-left-open .left,.shell.mobile-right-open .right{width:100%;max-width:none}
@@ -39,7 +40,7 @@
     </header>
     <div class="shell" id="shell">
       <aside class="left" id="left"><div class="left-head"><strong>Keyframe navigator</strong><button class="close" id="hide-left" aria-label="Hide keyframe navigator">−</button></div><div class="nav-tabs"><button id="nav-all" class="active">All</button><button id="nav-linked">Linked</button></div><input id="nav-search" class="nav-filter" type="search" placeholder="Filter keyframes…"><div id="keyframe-list" class="keyframe-list"></div></aside>
-      <main class="stage" id="stage"><svg id="canvas" role="img" aria-label="Infinite production canvas for LaserMan Scene 4"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#c8d2df" stroke-width="1"/></pattern><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4 0 8Z" fill="#9aa9bb"/></marker></defs><g id="world"><rect id="world-grid" x="-50000" y="-50000" width="100000" height="100000" fill="url(#grid)" pointer-events="none"/><g id="content"></g></g></svg><div id="status" class="floating status"><button id="status-toggle" aria-expanded="false" aria-label="Show or hide map guide">i</button><span id="status-text">Keyframe map loads first. Open All generations to inspect every recorded action and candidate for a selected keyframe.</span></div><div class="floating panel-openers"><button id="show-left">☰ Keyframes</button><button id="show-right">Details ▸</button></div><div class="floating legend"><span class="key"><i class="keyframe"></i>keyframe family</span><span class="key"><i class="action"></i>action</span><span class="key"><i class="candidate"></i>candidate</span><span class="key"><i class="best"></i>counterfactual best</span><span class="key"><i class="lineage"></i>generated-reference lineage</span><span class="key"><i class="approved"></i>approved asset</span></div></main>
+      <main class="stage" id="stage"><svg id="canvas" role="img" aria-label="Infinite production canvas for LaserMan Scene 4"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#c8d2df" stroke-width="1"/></pattern><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4 0 8Z" fill="#9aa9bb"/></marker></defs><g id="world"><rect id="world-grid" x="-50000" y="-50000" width="100000" height="100000" fill="url(#grid)" pointer-events="none"/><g id="content"></g></g></svg><div id="status" class="floating status"><button id="status-toggle" aria-expanded="false" aria-label="Show or hide map guide">i</button><span id="status-text">Keyframe map loads first. Open All generations to inspect every recorded action and candidate for a selected keyframe.</span></div><div class="floating panel-openers"><button id="show-left" aria-label="Show keyframe navigator">Show keyframes</button><button id="show-right" aria-label="Show selection details">Show details</button></div><div class="floating legend"><span class="key"><i class="keyframe"></i>keyframe family</span><span class="key"><i class="action"></i>action</span><span class="key"><i class="candidate"></i>candidate</span><span class="key"><i class="best"></i>counterfactual best</span><span class="key"><i class="lineage"></i>generated-reference lineage</span><span class="key"><i class="approved"></i>approved asset</span></div></main>
       <aside class="right" id="right"><div class="right-head"><strong>Selection details</strong><button class="close" id="hide-right" aria-label="Hide selection details">−</button></div><div id="inspector"><div class="empty">Select a keyframe, action or candidate.</div></div></aside><button class="drawer-scrim" id="drawer-scrim" aria-label="Close panel"></button>
     </div>
   </div>
