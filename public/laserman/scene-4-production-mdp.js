@@ -3,7 +3,6 @@
   const world = $("#world");
   const content = $("#content");
   const stage = $("#stage");
-  const svg = $("#canvas");
   const shell = $("#shell");
   const inspector = $("#inspector");
   const list = $("#keyframe-list");
@@ -26,6 +25,15 @@
   function actionsFor(id) { return state.data.actions.filter((action) => String(action.keyframe_id) === String(id)).sort((a, b) => a.action_index - b.action_index); }
   function candidatesForAction(id) { return state.data.candidates.filter((candidate) => candidate.actionId === id).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)); }
   function isLinked(keyframe) { return state.data.actions.some((action) => String(action.keyframe_id) === String(keyframe.keyframe_id) && action.refs.some((ref) => ref.internal)); }
+  function announceRoute(keyframeId) { if (window.parent !== window) window.parent.postMessage({ type: "sf-locale:trajectory-route", keyframeId: keyframeId === null ? null : Number(keyframeId) }, window.location.origin); }
+  function setCopyLinkState(keyframeId) { const button = $("#copy-link"); button.disabled = keyframeId === null; button.title = keyframeId === null ? "Open a keyframe to copy its share link" : `Copy share link for KF ${keyframeId}`; }
+  async function copyCurrentLink() {
+    if (state.currentKF === null) return;
+    const url = new URL(`/trajectory/kf-${state.currentKF}`, window.location.origin).href;
+    try { await navigator.clipboard.writeText(url); }
+    catch { const field = document.createElement("textarea"); field.value = url; field.style.position = "fixed"; field.style.opacity = "0"; document.body.append(field); field.select(); document.execCommand("copy"); field.remove(); }
+    const button = $("#copy-link"); button.textContent = "Copied"; window.setTimeout(() => { button.textContent = "Copy link"; }, 1400);
+  }
 
   function renderNavigator() {
     const query = $("#nav-search").value.trim().toLowerCase();
@@ -54,6 +62,8 @@
     state.mode = "overview";
     state.currentKF = null;
     state.selected = null;
+    setCopyLinkState(null);
+    announceRoute(null);
     $("#overview").classList.add("active"); $("#generations").classList.remove("active");
     $("#status-text").textContent = "Keyframe map: select a family to open all recorded actions and candidates. Violet paths identify generated references reused in a later action.";
     content.replaceChildren();
@@ -80,6 +90,8 @@
   function drawRoute(keyframeId, focus = null) {
     const keyframe = keyframeById(keyframeId); if (!keyframe) return;
     state.mode = "generations"; state.currentKF = String(keyframeId); state.selected = null;
+    setCopyLinkState(state.currentKF);
+    announceRoute(state.currentKF);
     $("#overview").classList.remove("active"); $("#generations").classList.add("active");
     $("#status-text").textContent = `KF ${keyframe.keyframe_id}: every recorded candidate is shown. Select an action or image for prompt, references, heuristic reward heads and evidence status.`;
     content.replaceChildren();
@@ -114,7 +126,7 @@
   function focusKeyframe(id, openRoute) { const keyframe = keyframeById(id); if (!keyframe) return; if (openRoute) drawRoute(id); else showKeyframe(keyframe); }
   function search() { const value = $("#query").value.trim().toLowerCase(); if (!value) return; const candidate = state.data.candidates.find((item) => item.id.toLowerCase().includes(value) || item.failure.toLowerCase().includes(value)); if (candidate) { drawRoute(candidate.keyframeId, `candidate:${candidate.id}`); return; } const action = state.data.actions.find((item) => item.action_id.toLowerCase() === value || item.prompt.toLowerCase().includes(value)); if (action) { drawRoute(action.keyframe_id); const node = content.querySelector(`[data-selection="action:${action.action_id}"]`); selectNode(node, `action:${action.action_id}`); showAction(action); return; } const keyframe = state.data.keyframes.find((item) => String(item.keyframe_id) === value.replace(/^kf\s*/, "") || item.keyframe.toLowerCase().includes(value)); if (keyframe) { drawRoute(keyframe.keyframe_id); return; } $("#status-text").textContent = `No image, action or keyframe matched “${value}”.`; }
   function wire() {
-    $("#overview").onclick = drawOverview; $("#generations").onclick = () => drawRoute(state.currentKF || state.data.keyframes[0].keyframe_id); $("#plus").onclick = () => zoom(1.2); $("#minus").onclick = () => zoom(.82); $("#fit").onclick = fit; $("#query").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); }); $("#query").addEventListener("change", search); $("#nav-search").addEventListener("input", renderNavigator); $("#nav-all").onclick = () => { state.nav = "all"; $("#nav-all").classList.add("active"); $("#nav-linked").classList.remove("active"); renderNavigator(); }; $("#nav-linked").onclick = () => { state.nav = "linked"; $("#nav-linked").classList.add("active"); $("#nav-all").classList.remove("active"); renderNavigator(); }; $("#filter").onchange = () => { state.nav = $("#filter").value; $("#nav-all").classList.toggle("active", state.nav === "all"); $("#nav-linked").classList.toggle("active", state.nav === "linked"); renderNavigator(); }; $("#hide-left").onclick = () => shell.classList.add("left-hidden"); $("#hide-right").onclick = () => shell.classList.add("right-hidden"); $("#show-left").onclick = () => { shell.classList.remove("left-hidden"); shell.classList.toggle("mobile-left-open", innerWidth <= 760); }; $("#show-right").onclick = () => { shell.classList.remove("right-hidden"); shell.classList.toggle("mobile-right-open", innerWidth <= 760); }; $("#status-toggle").onclick = () => { const open = $("#status").classList.toggle("expanded"); $("#status-toggle").setAttribute("aria-expanded", String(open)); }; stage.addEventListener("pointerdown", (event) => { if (event.target.closest(".canvas-node")) return; drag = { x: event.clientX, y: event.clientY }; stage.classList.add("drag"); stage.setPointerCapture(event.pointerId); }); stage.addEventListener("pointermove", (event) => { if (!drag) return; state.x += event.clientX - drag.x; state.y += event.clientY - drag.y; drag = { x: event.clientX, y: event.clientY }; applyTransform(); }); stage.addEventListener("pointerup", (event) => { drag = null; stage.classList.remove("drag"); if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId); }); stage.addEventListener("wheel", (event) => { event.preventDefault(); const rect = stage.getBoundingClientRect(); zoom(event.deltaY < 0 ? 1.12 : .88, event.clientX - rect.left, event.clientY - rect.top); }, { passive: false }); new ResizeObserver(() => fit()).observe(stage); }
+    $("#overview").onclick = drawOverview; $("#generations").onclick = () => drawRoute(state.currentKF || state.data.keyframes[0].keyframe_id); $("#copy-link").onclick = copyCurrentLink; $("#plus").onclick = () => zoom(1.2); $("#minus").onclick = () => zoom(.82); $("#fit").onclick = fit; $("#query").addEventListener("keydown", (event) => { if (event.key === "Enter") search(); }); $("#query").addEventListener("change", search); $("#nav-search").addEventListener("input", renderNavigator); $("#nav-all").onclick = () => { state.nav = "all"; $("#nav-all").classList.add("active"); $("#nav-linked").classList.remove("active"); renderNavigator(); }; $("#nav-linked").onclick = () => { state.nav = "linked"; $("#nav-linked").classList.add("active"); $("#nav-all").classList.remove("active"); renderNavigator(); }; $("#filter").onchange = () => { state.nav = $("#filter").value; $("#nav-all").classList.toggle("active", state.nav === "all"); $("#nav-linked").classList.toggle("active", state.nav === "linked"); renderNavigator(); }; $("#hide-left").onclick = () => shell.classList.add("left-hidden"); $("#hide-right").onclick = () => shell.classList.add("right-hidden"); $("#show-left").onclick = () => { shell.classList.remove("left-hidden"); shell.classList.toggle("mobile-left-open", innerWidth <= 760); }; $("#show-right").onclick = () => { shell.classList.remove("right-hidden"); shell.classList.toggle("mobile-right-open", innerWidth <= 760); }; $("#status-toggle").onclick = () => { const open = $("#status").classList.toggle("expanded"); $("#status-toggle").setAttribute("aria-expanded", String(open)); }; stage.addEventListener("pointerdown", (event) => { if (event.target.closest(".canvas-node")) return; drag = { x: event.clientX, y: event.clientY }; stage.classList.add("drag"); stage.setPointerCapture(event.pointerId); }); stage.addEventListener("pointermove", (event) => { if (!drag) return; state.x += event.clientX - drag.x; state.y += event.clientY - drag.y; drag = { x: event.clientX, y: event.clientY }; applyTransform(); }); stage.addEventListener("pointerup", (event) => { drag = null; stage.classList.remove("drag"); if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId); }); stage.addEventListener("wheel", (event) => { event.preventDefault(); const rect = stage.getBoundingClientRect(); zoom(event.deltaY < 0 ? 1.12 : .88, event.clientX - rect.left, event.clientY - rect.top); }, { passive: false }); new ResizeObserver(() => fit()).observe(stage); }
   function wirePanels() {
     let epoch = 0;
     const isMobile = () => innerWidth <= 760;
@@ -180,6 +192,6 @@
   stage.addEventListener("pointercancel", () => { drag = null; stage.classList.remove("drag"); });
   stage.addEventListener("lostpointercapture", () => { drag = null; stage.classList.remove("drag"); });
 
-  async function load() { try { const raw = await fetch("/laserman/scene-4-keyframe-canvas.html").then((response) => response.text()); const start = raw.indexOf("const DATA=") + "const DATA=".length; const end = raw.indexOf("}]};\n(()=>{", start); if (start < "const DATA=".length || end < 0) throw new Error("Could not locate the source archive."); state.data = JSON.parse(raw.slice(start, end + 3)); $("#summary").textContent = `${state.data.meta.keyframe_count} keyframe families · ${state.data.meta.action_count} actions · ${state.data.meta.candidate_count.toLocaleString()} generated states · heuristic audit`; wire(); drawOverview(); } catch (error) { $("#summary").textContent = "Archive load failed"; inspector.innerHTML = `<div class="empty">${escapeHTML(error.message)}</div>`; } }
+  async function load() { try { const raw = await fetch("/laserman/scene-4-keyframe-canvas.html").then((response) => response.text()); const start = raw.indexOf("const DATA=") + "const DATA=".length; const end = raw.indexOf("}]};\n(()=>{", start); if (start < "const DATA=".length || end < 0) throw new Error("Could not locate the source archive."); state.data = JSON.parse(raw.slice(start, end + 3)); $("#summary").textContent = `${state.data.meta.keyframe_count} keyframe families · ${state.data.meta.action_count} actions · ${state.data.meta.candidate_count.toLocaleString()} generated states · heuristic audit`; wire(); const initialKeyframe = new URLSearchParams(window.location.search).get("keyframe"); if (initialKeyframe && keyframeById(initialKeyframe)) drawRoute(initialKeyframe); else drawOverview(); } catch (error) { $("#summary").textContent = "Archive load failed"; inspector.innerHTML = `<div class="empty">${escapeHTML(error.message)}</div>`; } }
   load();
 })();
