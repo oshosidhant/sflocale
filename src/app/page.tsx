@@ -6,6 +6,7 @@ export default function Home() {
   return (
     <>
       <ScrollProgress />
+      <div className="home-page">
       <header><div className="column header-inner"><a className="wordmark" href="#top">SF Locale</a><nav aria-label="Primary"><Link className="header-trajectory" href="/trajectory">Trajectory <span aria-hidden="true">→</span></Link></nav></div></header>
       <div className="hero" id="top"><div className="column hero-grid"><div><h1>Filmmaking is a sequence of judgments.</h1><p className="summary">SF Locale studies how human decisions can guide video systems across shots, scenes and complete films.</p><Link className="trajectory-button" href="/trajectory">Trajectory <span aria-hidden="true">→</span></Link></div><dl className="hero-stats" aria-label="SF Locale production archive"><div><dt>5</dt><dd>feature (70+ min) films completed</dd></div><div><dt>1M+</dt><dd>generations recorded</dd></div><div><dt>4K</dt><dd>director annotation hours</dd></div></dl></div></div>
       <main className="column">
@@ -87,6 +88,7 @@ export default function Home() {
       </main>
       <footer className="site-footer" id="contact"><div className="column"><p className="footer-label">Collaboration</p><h2>We want researchers who can make these questions measurable.</h2><p>We are interested in collaborations in video generation, preference learning, computational cinematography, multimodal evaluation and long-form consistency.</p><p>Useful work includes building leakage-resistant benchmarks, learning from partial preferences, representing active canon, modeling delayed repair and evaluating human decision support in production.</p><p>Tell us which question you would test and what evidence you would need from the archive.</p><a className="contact-link" href="mailto:research@sflocale.com">research@sflocale.com</a></div></footer>
       <footer className="site-legal-footer"><div className="column"><p className="made-in-bombay">Made with ❤️ in Bombay, India</p><p className="legal-copy">The names and logos for SF Locale® are trademarks of Penny Lane Advertising Services LLP. All other trademarks, brand names, or product names belong to their respective holders. © 2026, SF Locale (registered as Penny Lane Advertising Services LLP). All rights reserved.</p></div></footer>
+      </div>
     </>
   );
 }
