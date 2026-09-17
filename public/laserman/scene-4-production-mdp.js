@@ -9,7 +9,7 @@
   const state = { data: null, mode: "overview", currentKF: null, selected: null, x: 0, y: 0, scale: 1, graphWidth: 1, graphHeight: 1, nav: "all", preserveViewport: false, lockViewport: true };
   const activePointers = new Map();
   let pointerGesture = null;
-  let suppressedClickNode = null;
+  let suppressNodeClickUntil = 0;
   let panelsWired = false;
 
   const escapeHTML = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#039;", '"': "&quot;" }[char]));
@@ -61,11 +61,10 @@
     group.classList.add("canvas-node");
     group.dataset.selection = selection;
     group.addEventListener("click", (event) => {
-      if (group === suppressedClickNode) { suppressedClickNode = null; event.preventDefault(); event.stopPropagation(); return; }
+      if (Date.now() < suppressNodeClickUntil) { event.preventDefault(); event.stopPropagation(); return; }
       event.stopPropagation();
       selectNode(group, selection);
       handler();
-      showMobileDetailsAfterSelection(selection);
     });
     content.append(group);
   }
@@ -74,10 +73,6 @@
   function closeMobilePanelsAfterSelection() {
     if (!isMobileViewport()) return;
     shell.classList.remove("mobile-left-open", "mobile-right-open");
-  }
-  function showMobileDetailsAfterSelection(selection) {
-    if (!isMobileViewport() || selection.startsWith("keyframe:")) return;
-    $("#show-right").click();
   }
   function revealDesktopDetails() {
     if (!isMobileViewport() && shell.classList.contains("right-hidden")) $("#show-right").click();
@@ -167,26 +162,20 @@
       worldY: (midpoint.y - state.y) / state.scale,
     };
     stage.classList.remove("drag");
+    suppressNodeClickUntil = Date.now() + 350;
   }
   function clearPointer(pointerId) {
     activePointers.delete(pointerId);
     try { if (stage.hasPointerCapture(pointerId)) stage.releasePointerCapture(pointerId); } catch {}
+    if (pointerGesture?.kind === "pinch" || pointerGesture?.moved) suppressNodeClickUntil = Date.now() + 350;
     if (activePointers.size === 1) {
       const [nextId, point] = activePointers.entries().next().value;
-      pointerGesture = { kind: "pan", pointerId: nextId, startX: point.x, startY: point.y, lastX: point.x, lastY: point.y, moved: true, node: null };
+      pointerGesture = { kind: "pan", pointerId: nextId, startX: point.x, startY: point.y, lastX: point.x, lastY: point.y, moved: true };
       stage.classList.add("drag");
       return;
     }
     pointerGesture = null;
     stage.classList.remove("drag");
-  }
-  function endPointer(event) {
-    const gesture = pointerGesture;
-    if (activePointers.size === 1 && gesture?.pointerId === event.pointerId && gesture.moved && gesture.node) {
-      suppressedClickNode = gesture.node;
-      window.setTimeout(() => { if (suppressedClickNode === gesture.node) suppressedClickNode = null; }, 0);
-    }
-    clearPointer(event.pointerId);
   }
   function wire() {
     if (!panelsWired) { wirePanels(); panelsWired = true; }
@@ -208,7 +197,7 @@
       activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       try { stage.setPointerCapture(event.pointerId); } catch {}
       if (activePointers.size >= 2) { startPinch(); event.preventDefault(); return; }
-      pointerGesture = { kind: "pending", pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, lastX: event.clientX, lastY: event.clientY, moved: false, node: event.target.closest(".canvas-node") };
+      pointerGesture = { kind: "pending", pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, lastX: event.clientX, lastY: event.clientY, moved: false };
       if (!event.target.closest(".canvas-node")) event.preventDefault();
     });
     stage.addEventListener("pointermove", (event) => {
@@ -225,6 +214,7 @@
         state.y = midpoint.y - pointerGesture.worldY * scale;
         state.scale = scale;
         applyTransform();
+        suppressNodeClickUntil = Date.now() + 350;
         event.preventDefault();
         return;
       }
@@ -237,11 +227,12 @@
         state.x += point.x - pointerGesture.lastX;
         state.y += point.y - pointerGesture.lastY;
         applyTransform();
+        suppressNodeClickUntil = Date.now() + 350;
         event.preventDefault();
       }
       pointerGesture.lastX = point.x; pointerGesture.lastY = point.y;
     });
-    stage.addEventListener("pointerup", endPointer);
+    stage.addEventListener("pointerup", (event) => clearPointer(event.pointerId));
     stage.addEventListener("pointercancel", (event) => clearPointer(event.pointerId));
     stage.addEventListener("lostpointercapture", (event) => { if (activePointers.has(event.pointerId)) clearPointer(event.pointerId); });
     stage.addEventListener("wheel", (event) => { event.preventDefault(); const point = stagePoint(event.clientX, event.clientY); zoom(event.deltaY < 0 ? 1.12 : .88, point.x, point.y); }, { passive: false });
